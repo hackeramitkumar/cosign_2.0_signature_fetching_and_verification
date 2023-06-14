@@ -67,7 +67,7 @@ func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, 
 
 func verifyImageSignatures_util(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
 
-	verifier, err := decodePEM([]byte(pub_key), crypto.SHA512)
+	verifier, err := decodePEM([]byte(pub_key), crypto.SHA256)
 	if err != nil {
 		fmt.Println("Error occured during the fetching of verifier;")
 		panic(err)
