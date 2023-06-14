@@ -128,6 +128,7 @@ func cosign2() {
 	// identity := os.Getenv("DIGEST")
 	// image := regstry + "/" + repo + "@" + identity
 	image := os.Getenv("IMAGE_URI")
+	fmt.Println(image)
 	// image := "ghcr.io/hackeramitkumar/kubeji2:latest"
 	ref, err := name.ParseReference(image)
 	if err != nil {
