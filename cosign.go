@@ -22,34 +22,13 @@ var (
 	-----END PUBLIC KEY-----`
 )
 
-type sig struct {
-	oci.Signature
-	cosignPayload cosign.SignedPayload
-}
-
+// Will be used for fetching extra information
 func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, error) {
 	var sigPayloads []payload.SimpleContainerImage
-	fmt.Println("1")
-	for _, b := range verified {
-		fmt.Println(b)
-	}
 	for _, sig := range verified {
-		fmt.Println("2")
 		if sig != nil {
 			fmt.Println(sig)
-			// pld, err := sig.Payload()
-			fmt.Println("3")
-
-			// if err != nil {
-			// 	return nil, fmt.Errorf("failed to get payload: %w", err)
-			// }
-
 			sci := payload.SimpleContainerImage{}
-			// if err := json.Unmarshal(pld, &sci); err != nil {
-			// 	return nil, fmt.Errorf("error decoding the payload: %w", err)
-			// }
-			fmt.Println("4")
-
 			sigPayloads = append(sigPayloads, sci)
 		}
 	}
@@ -110,12 +89,13 @@ func fetchArtifacts(ref name.Reference) error {
 	return nil
 }
 
-func main() {
+func cosign2() {
 	image := "ghcr.io/hackeramitkumar/kubeji2:latest"
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Println("--------------------------------Image refrence information : ----------------------------------")
 	fmt.Println("Registry : ", ref.Context().RegistryStr())
 	fmt.Println("Repository : ", ref.Context().RepositoryStr())
@@ -131,12 +111,12 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("------------------------------------- Fetched all the signedPayloads ------------------------------------------------------")
+	fmt.Println("------------------------------------- Fetched all the signedPayloads --------------------------------------")
 	fmt.Println()
 
 	for _, Payload := range signedPayloads {
-		fmt.Println("------------------------------------- Signed Payload  -------------------------------------------------------")
-		fmt.Println("\n \n------------------------------------- Signed Payload Bundle  -------------------------------------------------------")
+		fmt.Println("------------------------------------- Signed Payload  ------------------------------------------")
+		fmt.Println("\n \n----------------------------------- Signed Payload Bundle  ---------------------------------")
 
 		byteStream, err := json.Marshal(Payload.Bundle)
 		if err != nil {
@@ -145,9 +125,9 @@ func main() {
 		}
 		jsonString := string(byteStream)
 		fmt.Println(jsonString)
-		fmt.Printf("-----------------------------------  Signature for Payload :  --------------------------------------:\n ")
+		fmt.Printf("---------------------------------  Signature for Payload :  --------------------------------------:\n ")
 		fmt.Println(Payload.Base64Signature)
-		fmt.Printf("------------------------------------ Certificate for the Payload : ---------------------------------------------: \n")
+		fmt.Printf("--------------------------------- Certificate for the Payload : -----------------------------------------: \n")
 		byteStream2, err := json.Marshal(Payload.Cert)
 		// sigVer, err := cosign.ValidateAndUnpackCert(Payload.Cert)
 
@@ -185,4 +165,8 @@ func main() {
 		fmt.Println(sig.Base64Signature)
 	}
 
+}
+
+func main() {
+	cosign2()
 }
