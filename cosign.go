@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -122,7 +123,12 @@ func fetchArtifacts(ref name.Reference) error {
 }
 
 func cosign2() {
-	image := "ghcr.io/hackeramitkumar/kubeji2:latest"
+	// regstry := os.Getenv("REGISTRY")
+	// repo := os.Getenv("REPOSITORY")
+	// identity := os.Getenv("DIGEST")
+	// image := regstry + "/" + repo + "@" + identity
+	image := os.Getenv("IMAGE_URI")
+	// image := "ghcr.io/hackeramitkumar/kubeji2:latest"
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		panic(err)
