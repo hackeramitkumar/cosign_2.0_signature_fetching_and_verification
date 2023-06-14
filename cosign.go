@@ -122,7 +122,7 @@ func fetchArtifacts(ref name.Reference) error {
 }
 
 func cosign2() {
-	image := "ghcr.io/hackeramitkumar/tetsing_cosign/kubeji:latest"
+	image := "ghcr.io/hackeramitkumar/kubeji2:latest"
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		panic(err)
@@ -133,14 +133,16 @@ func cosign2() {
 	fmt.Println("Repository : ", ref.Context().RepositoryStr())
 	fmt.Println("Identifier : ", ref.Identifier())
 
-	fmt.Println("\n")
+	fmt.Println("")
+	fmt.Println("")
 	fmt.Println("------------------------------------------Artifacts--------------------------------------------")
 	fetchArtifacts(ref)
 	fmt.Println()
 
 	fmt.Print("-----------------  Fetching the signedPayload for : ", image)
 	fmt.Println("-------------------")
-	fmt.Println("\n")
+	fmt.Println("")
+	fmt.Println("")
 
 	ctx := context.Background()
 	signedPayloads, err := cosign.FetchSignaturesForReference(ctx, ref)
@@ -181,7 +183,8 @@ func cosign2() {
 		fmt.Println(jsonString2)
 	}
 
-	fmt.Println("\n")
+	fmt.Println("")
+	fmt.Println("")
 	fmt.Println("-------------------------------------Signature verification --------------------------------------")
 	fmt.Println("")
 
@@ -192,11 +195,6 @@ func cosign2() {
 	fmt.Println("")
 	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
 	for _, sig := range verified_signatures {
-		// temp, err := json.Marshal()
-		// if err != nil {
-		// 	fmt.Println("Error occured during the conversion : ", err)
-		// }
-		// tempstr := string(temp)
 		fmt.Println(sig.Base64Signature())
 	}
 }
