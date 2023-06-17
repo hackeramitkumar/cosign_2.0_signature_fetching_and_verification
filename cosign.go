@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"crypto"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,21 +16,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
-
-/*
-// Will be used for fetching extra information
-func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, error) {
-	var sigPayloads []payload.SimpleContainerImage
-	for _, sig := range verified {
-		if sig != nil {
-			fmt.Println(sig)
-			sci := payload.SimpleContainerImage{}
-			sigPayloads = append(sigPayloads, sci)
-		}
-	}
-	return sigPayloads, nil
-}
-*/
 
 func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, error) {
 	// PEM encoded file.
@@ -71,95 +58,25 @@ func fetchArtifacts(ref name.Reference) error {
 	return nil
 }
 
-func cosign2() {
-	// regstry := os.Getenv("REGISTRY")
-	// repo := os.Getenv("REPOSITORY")
-	// identity := os.Getenv("DIGEST")
-	// image := regstry + "/" + repo + "@" + identity
-	// image := os.Getenv("IMAGE_URI")
-	// fmt.Println(image)
-	image := "ghcr.io/hackeramitkumar/kubeji2:latest"
-	ref, err := name.ParseReference(image)
+func loadCert(pem []byte) (*x509.Certificate, error) {
+	var out []byte
+	out, err := base64.StdEncoding.DecodeString(string(pem))
 	if err != nil {
-		panic(err)
+		// not a base64
+		out = pem
 	}
 
-	fmt.Println("--------------------------------  Image refrence information : ------------------------------")
-	fmt.Println("Registry : ", ref.Context().RegistryStr())
-	fmt.Println("Repository : ", ref.Context().RepositoryStr())
-	fmt.Println("Identifier : ", ref.Identifier())
-
-	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("------------------------------------------Artifacts--------------------------------------------")
-	fetchArtifacts(ref)
-	fmt.Println()
-
-	fmt.Print("-----------------  Fetching the signedPayload for : ", image)
-	fmt.Println("-------------------")
-	fmt.Println("")
-	fmt.Println("")
-
-	ctx := context.Background()
-	signedPayloads, err := cosign.FetchSignaturesForReference(ctx, ref)
+	certs, err := cryptoutils.UnmarshalCertificatesFromPEM(out)
 	if err != nil {
-		fmt.Println("Error During signedPayloads Fetcheing ")
-		panic(err)
+		return nil, fmt.Errorf("failed to unmarshal certificate from PEM format: %w", err)
 	}
-
-	fmt.Println("------------------------------------  Fetched all the signedPayloads ----------------------------")
-	fmt.Println()
-
-	for _, Payload := range signedPayloads {
-		fmt.Println("------------------------------------- Signed Payload Content --------------------------------")
-		fmt.Println("")
-		fmt.Println("--------------------------------------Signed Payload Bundle  ----------------------------------")
-
-		byteStream, err := json.Marshal(Payload.Bundle)
-		if err != nil {
-			fmt.Println("Error marshaling JSON:", err)
-			return
-		}
-		jsonString := string(byteStream)
-		fmt.Println(jsonString)
-		fmt.Println("")
-
-		fmt.Println("--------------------------------------Signature for Payload -----------------------------------")
-		fmt.Println(Payload.Base64Signature)
-		fmt.Println("")
-
-		fmt.Println("-----------------------------------Certificate for the Payload---------------------------------")
-		byteStream2, err := json.Marshal(Payload.Cert)
-
-		if err != nil {
-			fmt.Println("Error marshaling JSON:", err)
-			return
-		}
-		jsonString2 := string(byteStream2)
-		fmt.Println(jsonString2)
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("no certs found in pem file")
 	}
-
-	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("-------------------------------------Signature verification --------------------------------------")
-	fmt.Println("")
-
-	verified_signatures, err := verifyImageSignatures_util(ctx, ref)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("")
-	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
-	for _, sig := range verified_signatures {
-		fmt.Println(sig.Base64Signature())
-	}
+	return certs[0], nil
 }
 
-func main() {
-	cosign2()
-}
-
-func verifyImageSignatures_util(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
+func keyed_signatureVerification(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
 	filePath := "cosign.pub"
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -224,11 +141,33 @@ func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]o
 	}
 	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
 
-	cosignVeriOptions := cosign.CheckOpts{
-		Identities: identities,
-		// RekorClient: rekor_client,
-		RekorPubKeys: trustedTransparencyLogPubKeys,
+	filePath := "demo.txt"
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		panic(err)
 	}
+
+	// Convert the data to a byte slice ([]byte)
+	byteData := []byte(data)
+	cert, err := loadCert(byteData)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(byteData))
+
+	verifier2, err := signature.LoadVerifier(cert.PublicKey, crypto.SHA256)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load signature from certificate: %w", err)
+	}
+
+	cosignVeriOptions := cosign.CheckOpts{
+		Identities:   identities,
+		RekorPubKeys: trustedTransparencyLogPubKeys,
+		SigVerifier:  verifier2,
+	}
+
+	fmt.Println("Started the verification")
 
 	verified_signatures, isVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignVeriOptions)
 	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
@@ -239,9 +178,111 @@ func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]o
 	if !isVerified {
 		fmt.Println("---------------------------------Verification failed ----------------------------------------")
 	}
-	fmt.Println("")
 
+	fmt.Println("")
 	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
 	return verified_signatures, err
 
+}
+
+func cosign2() {
+	// regstry := os.Getenv("REGISTRY")
+	// repo := os.Getenv("REPOSITORY")
+	// identity := os.Getenv("DIGEST")
+	// image := regstry + "/" + repo + "@" + identity
+	// image := os.Getenv("IMAGE_URI")
+	// fmt.Println(image)
+	image := "ghcr.io/hackeramitkumar/client:unverified"
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("--------------------------------  Image refrence information : ------------------------------")
+	fmt.Println("Registry : ", ref.Context().RegistryStr())
+	fmt.Println("Repository : ", ref.Context().RepositoryStr())
+	fmt.Println("Identifier : ", ref.Identifier())
+
+	fmt.Println("")
+	fmt.Println("")
+	fmt.Println("------------------------------------------Artifacts--------------------------------------------")
+	fetchArtifacts(ref)
+	fmt.Println()
+
+	fmt.Print("-----------------  Fetching the signedPayload for : ", image)
+	fmt.Println("-------------------")
+	fmt.Println("")
+	fmt.Println("")
+
+	ctx := context.Background()
+	signedPayloads, err := cosign.FetchSignaturesForReference(ctx, ref)
+	if err != nil {
+		fmt.Println("Error During signedPayloads Fetcheing ")
+		panic(err)
+	}
+
+	fmt.Println("------------------------------------  Fetched all the signedPayloads ----------------------------")
+	fmt.Println()
+
+	for _, Payload := range signedPayloads {
+		fmt.Println("------------------------------------- Signed Payload Content --------------------------------")
+		fmt.Println("")
+		fmt.Println("--------------------------------------Signed Payload Bundle  ----------------------------------")
+
+		byteStream, err := json.Marshal(Payload.Bundle)
+		if err != nil {
+			fmt.Println("Error marshaling JSON:", err)
+			return
+		}
+		jsonString := string(byteStream)
+		fmt.Println(jsonString)
+		fmt.Println("")
+
+		fmt.Println("--------------------------------------Signature for Payload -----------------------------------")
+		fmt.Println(Payload.Base64Signature)
+		fmt.Println("")
+
+		fmt.Println("-----------------------------------Certificate for the Payload---------------------------------")
+		byteStream2, err := json.Marshal(Payload.Cert)
+
+		if err != nil {
+			fmt.Println("Error marshaling JSON:", err)
+			return
+		}
+		jsonString2 := string(byteStream2)
+		fmt.Println(jsonString2)
+	}
+
+	fmt.Println("")
+	fmt.Println("")
+	fmt.Println("-------------------------------------Keyed Signature verification --------------------------------------")
+	fmt.Println("")
+
+	keyed_verified_signatures, err := keyed_signatureVerification(ctx, ref)
+	if err != nil {
+		fmt.Println("no signature matched:")
+	}
+	fmt.Println("")
+	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
+	for _, sig := range keyed_verified_signatures {
+		fmt.Println(sig.Base64Signature())
+	}
+
+	fmt.Println("-------------------------------------Keyless Signature verification --------------------------------------")
+	fmt.Println("")
+
+	keyless_verified_signatures, err := keyless_sigantureVerification(ctx, ref)
+	if err != nil {
+		fmt.Println("no signature matched...")
+	}
+
+	fmt.Println("")
+	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
+	for _, sig := range keyless_verified_signatures {
+		fmt.Println(sig.Base64Signature())
+	}
+}
+
+func main() {
+	cosign2()
 }
