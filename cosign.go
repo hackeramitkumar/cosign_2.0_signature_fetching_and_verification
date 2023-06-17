@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -38,56 +37,6 @@ func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, 
 		return nil, fmt.Errorf("pem to public key: %w", err)
 	}
 	return signature.LoadVerifier(pubKey, signatureAlgorithm)
-}
-
-func verifyImageSignatures_util(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
-	filePath := "cosign.pub"
-	data, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		fmt.Println("Error reading file:", err)
-		panic(err)
-	}
-
-	// Convert the data to a byte slice ([]byte)
-	byteData := []byte(data)
-	verifier, err := decodePEM(byteData, crypto.SHA256)
-	if err != nil {
-		fmt.Println("Error occured during the fetching of verifier;")
-		panic(err)
-	}
-
-	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
-	if err != nil {
-		fmt.Println("Error occured during the getting rekor pubs keys...")
-	}
-	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
-	// rekor_client := cosign.Get(ctx)
-	cosignVeriOptions := cosign.CheckOpts{
-		SigVerifier: verifier,
-		// RekorClient: rekor_client,
-		RekorPubKeys: trustedTransparencyLogPubKeys,
-	}
-
-	/*
-		fmt.Println("Public Key", verifier.PublicKey)
-		fmt.Println("Verify signature : ", verifier.VerifySignature)
-		fmt.Println("Sig.Verifier", verifier)
-	*/
-
-	verified_signatures, isVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignVeriOptions)
-	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
-	if err != nil {
-		fmt.Println("No signature matched : ")
-	}
-
-	if !isVerified {
-		fmt.Println("---------------------------------Verification failed ----------------------------------------")
-	}
-	fmt.Println("")
-
-	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
-	return verified_signatures, err
-
 }
 
 func fetchArtifacts(ref name.Reference) error {
@@ -127,9 +76,9 @@ func cosign2() {
 	// repo := os.Getenv("REPOSITORY")
 	// identity := os.Getenv("DIGEST")
 	// image := regstry + "/" + repo + "@" + identity
-	image := os.Getenv("IMAGE_URI")
-	fmt.Println(image)
-	// image := "ghcr.io/hackeramitkumar/kubeji2:latest"
+	// image := os.Getenv("IMAGE_URI")
+	// fmt.Println(image)
+	image := "ghcr.io/hackeramitkumar/kubeji2:latest"
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		panic(err)
@@ -208,4 +157,91 @@ func cosign2() {
 
 func main() {
 	cosign2()
+}
+
+func verifyImageSignatures_util(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
+	filePath := "cosign.pub"
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		panic(err)
+	}
+
+	// Convert the data to a byte slice ([]byte)
+	byteData := []byte(data)
+	verifier, err := decodePEM(byteData, crypto.SHA256)
+	if err != nil {
+		fmt.Println("Error occured during the fetching of verifier;")
+		panic(err)
+	}
+
+	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
+	if err != nil {
+		fmt.Println("Error occured during the getting rekor pubs keys...")
+	}
+	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
+	// rekor_client := cosign.Get(ctx)
+	cosignVeriOptions := cosign.CheckOpts{
+		SigVerifier: verifier,
+		// RekorClient: rekor_client,
+		RekorPubKeys: trustedTransparencyLogPubKeys,
+	}
+
+	/*
+		fmt.Println("Public Key", verifier.PublicKey)
+		fmt.Println("Verify signature : ", verifier.VerifySignature)
+		fmt.Println("Sig.Verifier", verifier)
+	*/
+
+	verified_signatures, isVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignVeriOptions)
+	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
+	if err != nil {
+		fmt.Println("No signature matched : ")
+	}
+
+	if !isVerified {
+		fmt.Println("---------------------------------Verification failed ----------------------------------------")
+	}
+	fmt.Println("")
+
+	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
+	return verified_signatures, err
+
+}
+
+func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
+
+	identities := []cosign.Identity{
+		cosign.Identity{
+			Issuer:  "https://accounts.google.com",
+			Subject: "amit9116260192@gmail.com",
+		},
+	}
+
+	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
+	if err != nil {
+		fmt.Println("Error occured during the getting rekor pubs keys...")
+	}
+	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
+
+	cosignVeriOptions := cosign.CheckOpts{
+		Identities: identities,
+		// RekorClient: rekor_client,
+		RekorPubKeys: trustedTransparencyLogPubKeys,
+	}
+
+	verified_signatures, isVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignVeriOptions)
+	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
+	if err != nil {
+		fmt.Println("No signature matched : ")
+	}
+
+	if !isVerified {
+		fmt.Println("---------------------------------Verification failed ----------------------------------------")
+	}
+	fmt.Println("")
+
+	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
+	return verified_signatures, err
+
 }
