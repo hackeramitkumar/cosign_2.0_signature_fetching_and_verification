@@ -11,6 +11,8 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/cosign/v2/pkg/oci"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -128,11 +130,13 @@ func keyed_signatureVerification(ctx context.Context, ref name.Reference) ([]oci
 
 func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
 
+	identity := cosign.Identity{
+		Issuer:  "https://accounts.google.com",
+		Subject: "amit9116260192@gmail.com",
+	}
+
 	identities := []cosign.Identity{
-		cosign.Identity{
-			Issuer:  "https://accounts.google.com",
-			Subject: "amit9116260192@gmail.com",
-		},
+		identity,
 	}
 
 	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
@@ -141,48 +145,61 @@ func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]o
 	}
 	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
 
-	filePath := "demo.txt"
-	data, err := ioutil.ReadFile(filePath)
+	// filePath := "demo.txt"
+	// data, err := ioutil.ReadFile(filePath)
+	// if err != nil {
+	// 	fmt.Println("Error reading file:", err)
+	// 	panic(err)
+	// }
+
+	// // Convert the data to a byte slice ([]byte)
+	// byteData := []byte(data)
+	// cert, err := loadCert(byteData)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// fmt.Println(string(byteData))
+
+	// verifier2, err := signature.LoadVerifier(cert.PublicKey, crypto.SHA256)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to load signature from certificate: %w", err)
+	// }
+
+	roots, err := fulcio.GetRoots()
 	if err != nil {
-		fmt.Println("Error reading file:", err)
-		panic(err)
+		fmt.Println("Did not get roots")
 	}
 
-	// Convert the data to a byte slice ([]byte)
-	byteData := []byte(data)
-	cert, err := loadCert(byteData)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(byteData))
+	// rekorUrl := "https://rekor.sigstore.dev"
 
-	verifier2, err := signature.LoadVerifier(cert.PublicKey, crypto.SHA256)
+	// rekor_client, err := rekor.NewClient(rekorUrl)
+	ctLogPubKeys, err := cosign.GetCTLogPubs(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load signature from certificate: %w", err)
+		fmt.Println("Error with CTLogPubKeys")
 	}
 
-	cosignVeriOptions := cosign.CheckOpts{
+	cosignOptions := cosign.CheckOpts{
 		Identities:   identities,
 		RekorPubKeys: trustedTransparencyLogPubKeys,
-		SigVerifier:  verifier2,
+		CTLogPubKeys: ctLogPubKeys,
+		RootCerts:    roots,
 	}
 
-	fmt.Println("Started the verification")
-
-	verified_signatures, isVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignVeriOptions)
+	verified_signatures, isVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignOptions)
 	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
 	if err != nil {
-		fmt.Println("No signature matched : ")
+		fmt.Println("No signature matched : ", err)
+		return nil, nil
 	}
 
 	if !isVerified {
 		fmt.Println("---------------------------------Verification failed ----------------------------------------")
+		return nil, nil
 	}
 
 	fmt.Println("")
 	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
 	return verified_signatures, err
-
 }
 
 func cosign2() {
