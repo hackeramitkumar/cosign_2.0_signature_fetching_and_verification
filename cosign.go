@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/x509"
@@ -10,8 +11,13 @@ import (
 	"io/ioutil"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 
+	// "k8s.io/client-go/tools/reference"
+	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/opencontainers/go-digest"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/cosign/v2/pkg/oci"
@@ -29,33 +35,63 @@ func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, 
 }
 
 func fetchArtifacts(ref name.Reference) error {
-	desc, err := remote.Get(ref)
+
+	// desc, err := remote.Get(ref)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// byteStream, err := json.Marshal(desc.Descriptor)
+	// if err != nil {
+	// 	fmt.Println("error during the marshaling of descriptor")
+	// 	panic(err)
+	// }
+	// jsonString := string(byteStream)
+	// fmt.Println(jsonString)
+
+	// img, err := remote.Image(ref)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// manifest, err := img.Manifest()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// byteStream3, err := json.Marshal(manifest)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// jsonString3 := string(byteStream3)
+	// fmt.Println("manifest :", jsonString3)
+	// desct := v1ToOciSpecDescriptor(descriptor)
+	manifestBytes, err := crane.Manifest(ref.String())
 	if err != nil {
 		panic(err)
 	}
 
-	byteStream, err := json.Marshal(desc.Descriptor)
-	if err != nil {
-		fmt.Println("error during the marshaling of descriptor")
+	var manifest ocispec.Manifest
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
 		panic(err)
 	}
-	jsonString := string(byteStream)
-	fmt.Println(jsonString)
 
-	img, err := remote.Image(ref)
+	predicateRef := ref.Context().RegistryStr() + "/" + ref.Context().RepositoryStr() + "@" + manifest.Layers[0].Digest.String()
+	layer, err := crane.PullLayer(predicateRef)
 	if err != nil {
 		panic(err)
 	}
-	manifest, err := img.Manifest()
+
+	io, err := layer.Uncompressed()
 	if err != nil {
 		panic(err)
 	}
-	byteStream3, err := json.Marshal(manifest)
+	buf := new(bytes.Buffer)
+
+	_, err = buf.ReadFrom(io)
 	if err != nil {
 		panic(err)
 	}
-	jsonString3 := string(byteStream3)
-	fmt.Println("manifest :", jsonString3)
+
+	fmt.Println(buf.String())
 
 	return nil
 }
@@ -202,14 +238,104 @@ func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]o
 	return verified_signatures, err
 }
 
-func cosign2() {
+func v1ToOciSpecDescriptor(v1desc v1.Descriptor) ocispec.Descriptor {
+	ociDesc := ocispec.Descriptor{
+		MediaType:   string(v1desc.MediaType),
+		Digest:      digest.Digest(v1desc.Digest.String()),
+		Size:        v1desc.Size,
+		URLs:        v1desc.URLs,
+		Annotations: v1desc.Annotations,
+		Data:        v1desc.Data,
+
+		ArtifactType: v1desc.ArtifactType,
+	}
+	if v1desc.Platform != nil {
+		ociDesc.Platform = &ocispec.Platform{
+			Architecture: v1desc.Platform.Architecture,
+			OS:           v1desc.Platform.OS,
+			OSVersion:    v1desc.Platform.OSVersion,
+		}
+	}
+	return ociDesc
+}
+
+func fetch_attestations(ctx context.Context, repo string) {
+	// image := "ghcr.io/hackeramitkumar/client:unverified"
+
+	ref, err := name.ParseReference(repo)
+	if err != nil {
+		panic(err)
+	}
+
+	// img, err := remote.Image(ref)
+	desc, err := crane.Head(repo)
+	//
+	//
+	if err != nil {
+		fmt.Println("error in Crane.Head call")
+	}
+
+	refDescs, err := remote.Referrers(ref.Context().Digest(desc.Digest.String()))
+	if err != nil {
+		fmt.Println("error in refferels api : ", ref.Context().Digest(desc.Digest.String()))
+		panic(err)
+	}
+	fmt.Println("---------------------------Fetching the referrers-----------------------------------")
+	fmt.Println()
+	// fmt.Println("Data :", str2)
+	for _, descriptor := range refDescs.Manifests {
+		fmt.Println("Digest:", descriptor.Digest.String())
+		fmt.Println("Artifact Type:", descriptor.ArtifactType)
+
+		if descriptor.ArtifactType == "application/spdx+json" {
+			ref := ref.Context().RegistryStr() + "/" + ref.Context().RepositoryStr() + "@" + descriptor.Digest.String()
+			reference, err := name.ParseReference(ref)
+			if err != nil {
+				panic(err)
+			}
+
+			// desct := v1ToOciSpecDescriptor(descriptor)
+			manifestBytes, err := crane.Manifest(ref)
+			if err != nil {
+				panic(err)
+			}
+
+			var manifest ocispec.Manifest
+			if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+				panic(err)
+			}
+
+			predicateRef := reference.Context().RegistryStr() + "/" + reference.Context().RepositoryStr() + "@" + manifest.Layers[0].Digest.String()
+			layer, err := crane.PullLayer(predicateRef)
+			if err != nil {
+				panic(err)
+			}
+
+			io, err := layer.Uncompressed()
+			if err != nil {
+				panic(err)
+			}
+			buf := new(bytes.Buffer)
+
+			_, err = buf.ReadFrom(io)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println(buf.String())
+		}
+	}
+
+}
+
+func cosign2(ctx context.Context, image string) {
 	// regstry := os.Getenv("REGISTRY")
 	// repo := os.Getenv("REPOSITORY")
 	// identity := os.Getenv("DIGEST")
 	// image := regstry + "/" + repo + "@" + identity
 	// image := os.Getenv("IMAGE_URI")
 	// fmt.Println(image)
-	image := "ghcr.io/hackeramitkumar/client:unverified"
+	// image := "ghcr.io/hackeramitkumar/client:unverified"
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		panic(err)
@@ -221,7 +347,6 @@ func cosign2() {
 	fmt.Println("Identifier : ", ref.Identifier())
 
 	fmt.Println("")
-	fmt.Println("")
 	fmt.Println("------------------------------------------Artifacts--------------------------------------------")
 	fetchArtifacts(ref)
 	fmt.Println()
@@ -231,7 +356,6 @@ func cosign2() {
 	fmt.Println("")
 	fmt.Println("")
 
-	ctx := context.Background()
 	signedPayloads, err := cosign.FetchSignaturesForReference(ctx, ref)
 	if err != nil {
 		fmt.Println("Error During signedPayloads Fetcheing ")
@@ -251,6 +375,7 @@ func cosign2() {
 			fmt.Println("Error marshaling JSON:", err)
 			return
 		}
+
 		jsonString := string(byteStream)
 		fmt.Println(jsonString)
 		fmt.Println("")
@@ -298,8 +423,17 @@ func cosign2() {
 	for _, sig := range keyless_verified_signatures {
 		fmt.Println(sig.Base64Signature())
 	}
+
 }
 
 func main() {
-	cosign2()
+
+	ctx := context.Background()
+	image := "localhost:5001/demo-reffer:app"
+
+	// cosign2(ctx, image)
+
+	fmt.Println("--------------------------------------------Fetch attestation-------------------------------------")
+
+	fetch_attestations(ctx, image)
 }
