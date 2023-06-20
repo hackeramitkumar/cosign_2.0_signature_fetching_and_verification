@@ -203,7 +203,20 @@ func keyless_sigantureVerification(image string) ([]oci.Signature, error) {
 
 	fmt.Println("")
 	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
-	return verified_signatures, err
+
+	fmt.Println("-------------------------------------Keyless Signature verification --------------------------------------")
+	fmt.Println("")
+
+	keyless_verified_signatures, err := keyless_sigantureVerification(ctx, ref)
+	if err != nil {
+		fmt.Println("no signature matched...")
+	}
+
+	fmt.Println("")
+	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
+	for _, sig := range keyless_verified_signatures {
+		fmt.Println(sig.Base64Signature())
+	}
 }
 
 func v1ToOciSpecDescriptor(v1desc v1.Descriptor) ocispec.Descriptor {
@@ -445,19 +458,6 @@ func cosign2(ctx context.Context, image string) {
 	}
 
 	fmt.Println("")
-	fmt.Println("-------------------------------------Keyless Signature verification --------------------------------------")
-	fmt.Println("")
-
-	keyless_verified_signatures, err := keyless_sigantureVerification(ctx, ref)
-	if err != nil {
-		fmt.Println("no signature matched...")
-	}
-
-	fmt.Println("")
-	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
-	for _, sig := range keyless_verified_signatures {
-		fmt.Println(sig.Base64Signature())
-	}
 }
 
 func main() {
