@@ -351,6 +351,7 @@ func fetch_attestations(image string) error {
 	desc, err := crane.Head(image)
 	if err != nil {
 		fmt.Println("error in Crane.Head call")
+		panic(err)
 	}
 
 	refDescs, err := remote.Referrers(ref.Context().Digest(desc.Digest.String()))
@@ -404,6 +405,7 @@ func fetch_attestations(image string) error {
 
 		}
 	}
+	return nil
 
 }
 
