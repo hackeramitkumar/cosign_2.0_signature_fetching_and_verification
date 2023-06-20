@@ -150,7 +150,7 @@ func keyed_signatureVerification(image string) error {
 	return nil
 }
 
-func keyless_sigantureVerification(image string) ([]oci.Signature, error) {
+func keyless_sigantureVerification(image string) {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		fmt.Println(err)
@@ -196,7 +196,7 @@ func keyless_sigantureVerification(image string) ([]oci.Signature, error) {
 	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
 	if err != nil {
 		fmt.Println("No signature matched : ", err)
-		return nil, nil
+		return nil
 	}
 
 	if !isVerified {
