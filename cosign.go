@@ -35,65 +35,35 @@ func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, 
 	return signature.LoadVerifier(pubKey, signatureAlgorithm)
 }
 
-func fetchArtifacts(ref name.Reference) error {
+func fetch_image_manifests(ref name.Reference) error {
 
-	// desc, err := remote.Get(ref)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// byteStream, err := json.Marshal(desc.Descriptor)
-	// if err != nil {
-	// 	fmt.Println("error during the marshaling of descriptor")
-	// 	panic(err)
-	// }
-	// jsonString := string(byteStream)
-	// fmt.Println(jsonString)
-
-	// img, err := remote.Image(ref)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// manifest, err := img.Manifest()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// byteStream3, err := json.Marshal(manifest)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// jsonString3 := string(byteStream3)
-	// fmt.Println("manifest :", jsonString3)
-	// desct := v1ToOciSpecDescriptor(descriptor)
-	manifestBytes, err := crane.Manifest(ref.String())
+	desc, err := remote.Get(ref)
 	if err != nil {
 		panic(err)
 	}
 
-	var manifest ocispec.Manifest
-	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+	byteStream, err := json.Marshal(desc.Descriptor)
+	if err != nil {
+		fmt.Println("error during the marshaling of descriptor")
 		panic(err)
 	}
+	jsonString := string(byteStream)
+	fmt.Println(jsonString)
 
-	predicateRef := ref.Context().RegistryStr() + "/" + ref.Context().RepositoryStr() + "@" + manifest.Layers[0].Digest.String()
-	layer, err := crane.PullLayer(predicateRef)
+	img, err := remote.Image(ref)
 	if err != nil {
 		panic(err)
 	}
-
-	io, err := layer.Uncompressed()
+	manifest, err := img.Manifest()
 	if err != nil {
 		panic(err)
 	}
-	buf := new(bytes.Buffer)
-
-	_, err = buf.ReadFrom(io)
+	byteStream3, err := json.Marshal(manifest)
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(buf.String())
-
+	jsonString3 := string(byteStream3)
+	fmt.Println("manifest :", jsonString3)
 	return nil
 }
 
