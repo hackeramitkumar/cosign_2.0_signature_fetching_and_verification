@@ -13,7 +13,7 @@ func test_Cosign2(t *testing.T) {
 }
 
 func test_fetch_signatures_and_manifests(t *testing.T) {
-	cosign2(image)
+	images_manifest_and_signature_fetch(image)
 }
 
 func test_keyed(t *testing.T) {

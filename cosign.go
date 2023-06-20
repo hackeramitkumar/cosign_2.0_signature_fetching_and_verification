@@ -489,6 +489,6 @@ func main() {
 	images_manifest_and_signature_fetch(image)
 	keyed_signatureVerification(image)
 	keyless_sigantureVerification(image)
-	fetch_attestations(image)
+	fetch_attestations(image) // referrers API
 	verifyAttestaions(image)
 }
