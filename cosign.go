@@ -338,7 +338,7 @@ func verifyAttestaions(image string) error {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("\n---------------------------------------------------------------------------------\n")
+		fmt.Println("---------------------------------------------------------------------------------")
 		fmt.Println(buf.String())
 	}
 	return nil
