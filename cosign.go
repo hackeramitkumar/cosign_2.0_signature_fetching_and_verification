@@ -445,12 +445,6 @@ func cosign2(ctx context.Context, image string) {
 	}
 
 	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
-	for _, sig := range keyed_verified_signatures {
-		fmt.Println(sig.Base64Signature())
-	}
-
 	fmt.Println("-------------------------------------Keyless Signature verification --------------------------------------")
 	fmt.Println("")
 
