@@ -35,6 +35,24 @@ func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, 
 	return signature.LoadVerifier(pubKey, signatureAlgorithm)
 }
 
+func loadCert(pem []byte) (*x509.Certificate, error) {
+	var out []byte
+	out, err := base64.StdEncoding.DecodeString(string(pem))
+	if err != nil {
+		// not a base64
+		out = pem
+	}
+
+	certs, err := cryptoutils.UnmarshalCertificatesFromPEM(out)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal certificate from PEM format: %w", err)
+	}
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("no certs found in pem file")
+	}
+	return certs[0], nil
+}
+
 func fetch_image_manifests(image string) error {
 
 	ref, err := name.ParseReference(image)
@@ -70,24 +88,6 @@ func fetch_image_manifests(image string) error {
 	jsonString3 := string(byteStream3)
 	fmt.Println("manifest :", jsonString3)
 	return nil
-}
-
-func loadCert(pem []byte) (*x509.Certificate, error) {
-	var out []byte
-	out, err := base64.StdEncoding.DecodeString(string(pem))
-	if err != nil {
-		// not a base64
-		out = pem
-	}
-
-	certs, err := cryptoutils.UnmarshalCertificatesFromPEM(out)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal certificate from PEM format: %w", err)
-	}
-	if len(certs) == 0 {
-		return nil, fmt.Errorf("no certs found in pem file")
-	}
-	return certs[0], nil
 }
 
 func keyed_signatureVerification(image string) error {
