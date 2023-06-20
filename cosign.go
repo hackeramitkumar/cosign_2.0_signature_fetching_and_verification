@@ -85,7 +85,16 @@ func loadCert(pem []byte) (*x509.Certificate, error) {
 	return certs[0], nil
 }
 
-func keyed_signatureVerification(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
+func keyed_signatureVerification(image string) error {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx := context.Background()
+
+	fmt.Println("-------------------------------------Keyed Signature verification --------------------------------------")
+	fmt.Println("")
+
 	filePath := "cosign.pub"
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -122,17 +131,23 @@ func keyed_signatureVerification(ctx context.Context, ref name.Reference) ([]oci
 	verified_signatures, isVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignVeriOptions)
 	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
 	if err != nil {
-		fmt.Println("No signature matched : ")
+		fmt.Println("No signature matched : ", err)
 	}
 
 	if !isVerified {
 		fmt.Println("---------------------------------Verification failed ----------------------------------------")
 	}
+
 	fmt.Println("")
 
 	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
-	return verified_signatures, err
 
+	fmt.Println("")
+	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
+	for _, sig := range verified_signatures {
+		fmt.Println(sig.Base64Signature())
+	}
+	return nil
 }
 
 func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
