@@ -23,6 +23,7 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/oci"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
 func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, error) {
@@ -259,6 +260,72 @@ func v1ToOciSpecDescriptor(v1desc v1.Descriptor) ocispec.Descriptor {
 	return ociDesc
 }
 
+func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, error) {
+	var sigPayloads []payload.SimpleContainerImage
+	for _, sig := range verified {
+		pld, err := sig.Payload()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get payload: %w", err)
+		}
+
+		sci := payload.SimpleContainerImage{}
+		if err := json.Unmarshal(pld, &sci); err != nil {
+			return nil, fmt.Errorf("error decoding the payload: %w", err)
+		}
+
+		sigPayloads = append(sigPayloads, sci)
+	}
+	return sigPayloads, nil
+}
+
+func verifyAttestaions(ctx context.Context, ref name.Reference, predicateType string) ([]oci.Signature, error) {
+	identity := cosign.Identity{
+		Issuer:  "https://accounts.google.com",
+		Subject: "amit9116260192@gmail.com",
+	}
+
+	identities := []cosign.Identity{
+		identity,
+	}
+
+	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
+	if err != nil {
+		fmt.Println("Error occured during the getting rekor pubs keys...")
+	}
+	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
+
+	ctLogPubKeys, err := cosign.GetCTLogPubs(ctx)
+	if err != nil {
+		fmt.Println("Error with CTLogPubKeys")
+	}
+
+	roots, err := fulcio.GetRoots()
+	if err != nil {
+		fmt.Println("Did not get roots")
+	}
+
+	cosignOptions := cosign.CheckOpts{
+		Identities:   identities,
+		RekorPubKeys: trustedTransparencyLogPubKeys,
+		CTLogPubKeys: ctLogPubKeys,
+		RootCerts:    roots,
+	}
+
+	sigs, bundelVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignOptions)
+
+	if err != nil {
+		fmt.Println("Error in fething verified siganture", err)
+	}
+	if !bundelVerified {
+		fmt.Println("Bundle is not verified!!", err)
+	}
+
+	for _, sig := range sigs {
+
+	}
+
+}
+
 func fetch_attestations(ctx context.Context, repo string) {
 	// image := "ghcr.io/hackeramitkumar/client:unverified"
 
@@ -429,7 +496,7 @@ func cosign2(ctx context.Context, image string) {
 func main() {
 
 	ctx := context.Background()
-	image := "localhost:5001/demo-reffer:app"
+	image := "localhost:5001/demo-reffer:app3"
 
 	// cosign2(ctx, image)
 
