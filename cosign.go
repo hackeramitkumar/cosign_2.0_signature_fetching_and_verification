@@ -501,7 +501,6 @@ func cosign2(ctx context.Context, image string) {
 	for _, sig := range keyless_verified_signatures {
 		fmt.Println(sig.Base64Signature())
 	}
-
 }
 
 func main() {
