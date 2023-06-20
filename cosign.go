@@ -150,7 +150,7 @@ func keyed_signatureVerification(image string) error {
 	return nil
 }
 
-func keyless_sigantureVerification(image string) {
+func keyless_sigantureVerification(image string) error {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		fmt.Println(err)
@@ -172,17 +172,22 @@ func keyless_sigantureVerification(image string) {
 	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
 	if err != nil {
 		fmt.Println("Error occured during the getting rekor pubs keys...")
+		panic(err)
+
 	}
 	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
 
 	roots, err := fulcio.GetRoots()
 	if err != nil {
 		fmt.Println("Did not get roots")
+		panic(err)
 	}
 
 	ctLogPubKeys, err := cosign.GetCTLogPubs(ctx)
 	if err != nil {
 		fmt.Println("Error with CTLogPubKeys")
+		panic(err)
+
 	}
 
 	cosignOptions := cosign.CheckOpts{
@@ -212,6 +217,7 @@ func keyless_sigantureVerification(image string) {
 	for _, sig := range verified_signatures {
 		fmt.Println(sig.Base64Signature())
 	}
+	return nil
 }
 
 func v1ToOciSpecDescriptor(v1desc v1.Descriptor) ocispec.Descriptor {
