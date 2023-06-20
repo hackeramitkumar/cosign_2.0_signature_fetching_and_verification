@@ -278,7 +278,11 @@ func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, e
 	return sigPayloads, nil
 }
 
-func verifyAttestaions(ctx context.Context, ref name.Reference, predicateType string) ([]oci.Signature, error) {
+func verifyAttestaions(ctx context.Context, image string, predicateType string) ([]oci.Signature, error) {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		fmt.Println(err)
+	}
 	identity := cosign.Identity{
 		Issuer:  "https://accounts.google.com",
 		Subject: "amit9116260192@gmail.com",
@@ -311,18 +315,25 @@ func verifyAttestaions(ctx context.Context, ref name.Reference, predicateType st
 		RootCerts:    roots,
 	}
 
-	sigs, bundelVerified, err := cosign.VerifyImageSignatures(ctx, ref, &cosignOptions)
+	sigs, bundelVerified, err := cosign.VerifyImageAttestations(ctx, ref, &cosignOptions)
 
 	if err != nil {
 		fmt.Println("Error in fething verified siganture", err)
 	}
+
 	if !bundelVerified {
 		fmt.Println("Bundle is not verified!!", err)
 	}
 
-	for _, sig := range sigs {
-
+	payloads, err := extractPayload(sigs)
+	if err != nil {
+		return nil, err
 	}
+
+	for _, p := range payloads {
+		fmt.Println(p.Critical.Type)
+	}
+	return sigs, err
 
 }
 
@@ -415,7 +426,7 @@ func cosign2(ctx context.Context, image string) {
 
 	fmt.Println("")
 	fmt.Println("------------------------------------------Artifacts--------------------------------------------")
-	fetchArtifacts(ref)
+	// fetchArtifacts(ref)
 	fmt.Println()
 
 	fmt.Print("-----------------  Fetching the signedPayload for : ", image)
@@ -498,9 +509,10 @@ func main() {
 	ctx := context.Background()
 	image := "localhost:5001/demo-reffer:app3"
 
-	// cosign2(ctx, image)
+	cosign2(ctx, image)
 
 	fmt.Println("--------------------------------------------Fetch attestation-------------------------------------")
 
 	fetch_attestations(ctx, image)
+	verifyAttestaions(ctx, image, "amit kumar")
 }
