@@ -1,33 +1,31 @@
 package main
 
-import (
-	"testing"
-)
+import "testing"
 
 var (
-	image = "localhost:5001/demo-refer:app3"
+	image = "localhost:5001/demo-reffer:app3"
 )
 
-func test_Cosign2(t *testing.T) {
+func Test_Cosign2(t *testing.T) {
 	main()
 }
 
-func test_fetch_signatures_and_manifests(t *testing.T) {
+func Test_fetch_signatures_and_manifests(t *testing.T) {
 	images_manifest_and_signature_fetch(image)
 }
 
-func test_keyed(t *testing.T) {
+func Test_keyed(t *testing.T) {
 	keyed_signatureVerification(image)
 }
 
-func test_keyless(t *testing.T) {
+func Test_keyless(t *testing.T) {
 	keyless_sigantureVerification(image)
 }
 
-func test_fetch_attached_artifacts_using_referrer_API(t *testing.T) {
+func Test_fetch_attached_artifacts_using_referrer_API(t *testing.T) {
 	fetch_attestations(image)
 }
 
-func test_verify_attestation(t *testing.T) {
+func Test_verify_attestation(t *testing.T) {
 	verifyAttestaions(image)
 }

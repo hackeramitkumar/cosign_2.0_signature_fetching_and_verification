@@ -303,6 +303,7 @@ func verifyAttestaions(image string) error {
 
 	sigs, bundelVerified, err := cosign.VerifyImageAttestations(ctx, ref, &cosignOptions)
 	fmt.Println("-----------------------------Attestations verification in Progress -------------------------------")
+	fmt.Println("")
 
 	if err != nil {
 		fmt.Println("Error in fething verified siganture", err)
@@ -326,7 +327,9 @@ func verifyAttestaions(image string) error {
 		}
 	*/
 
-	fmt.Println("------------------- Verified attestations signatures are ------------------------------")
+	fmt.Println("")
+	fmt.Println("------------------- Verified artifacts are ------------------------------")
+	fmt.Println("")
 	for _, sig := range sigs {
 		io, err := sig.Uncompressed()
 		if err != nil {
@@ -339,6 +342,8 @@ func verifyAttestaions(image string) error {
 			panic(err)
 		}
 		fmt.Println("---------------------------------------------------------------------------------")
+		fmt.Println("")
+
 		fmt.Println(buf.String())
 	}
 	return nil

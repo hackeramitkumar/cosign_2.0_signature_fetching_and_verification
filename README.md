@@ -33,3 +33,5 @@ mtIndex="application/vnd.oci.image.index.v1+json"
 mtImage="application/vnd.oci.image.manifest.v1+json"
 docker run -d --rm --label demo=referrers -p "127.0.0.1:5002:5000" ghcr.io/project-zot/zot-linux-amd64:latest
 regctl registry set --tls=disabled localhost:5001
+
+
