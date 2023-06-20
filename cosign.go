@@ -53,6 +53,45 @@ func loadCert(pem []byte) (*x509.Certificate, error) {
 	return certs[0], nil
 }
 
+func v1ToOciSpecDescriptor(v1desc v1.Descriptor) ocispec.Descriptor {
+	ociDesc := ocispec.Descriptor{
+		MediaType:   string(v1desc.MediaType),
+		Digest:      digest.Digest(v1desc.Digest.String()),
+		Size:        v1desc.Size,
+		URLs:        v1desc.URLs,
+		Annotations: v1desc.Annotations,
+		Data:        v1desc.Data,
+
+		ArtifactType: v1desc.ArtifactType,
+	}
+	if v1desc.Platform != nil {
+		ociDesc.Platform = &ocispec.Platform{
+			Architecture: v1desc.Platform.Architecture,
+			OS:           v1desc.Platform.OS,
+			OSVersion:    v1desc.Platform.OSVersion,
+		}
+	}
+	return ociDesc
+}
+
+func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, error) {
+	var sigPayloads []payload.SimpleContainerImage
+	for _, sig := range verified {
+		pld, err := sig.Payload()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get payload: %w", err)
+		}
+
+		sci := payload.SimpleContainerImage{}
+		if err := json.Unmarshal(pld, &sci); err != nil {
+			return nil, fmt.Errorf("error decoding the payload: %w", err)
+		}
+
+		sigPayloads = append(sigPayloads, sci)
+	}
+	return sigPayloads, nil
+}
+
 func fetch_image_manifests(image string) error {
 
 	ref, err := name.ParseReference(image)
@@ -225,45 +264,6 @@ func keyless_sigantureVerification(image string) error {
 	return nil
 }
 
-func v1ToOciSpecDescriptor(v1desc v1.Descriptor) ocispec.Descriptor {
-	ociDesc := ocispec.Descriptor{
-		MediaType:   string(v1desc.MediaType),
-		Digest:      digest.Digest(v1desc.Digest.String()),
-		Size:        v1desc.Size,
-		URLs:        v1desc.URLs,
-		Annotations: v1desc.Annotations,
-		Data:        v1desc.Data,
-
-		ArtifactType: v1desc.ArtifactType,
-	}
-	if v1desc.Platform != nil {
-		ociDesc.Platform = &ocispec.Platform{
-			Architecture: v1desc.Platform.Architecture,
-			OS:           v1desc.Platform.OS,
-			OSVersion:    v1desc.Platform.OSVersion,
-		}
-	}
-	return ociDesc
-}
-
-func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, error) {
-	var sigPayloads []payload.SimpleContainerImage
-	for _, sig := range verified {
-		pld, err := sig.Payload()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get payload: %w", err)
-		}
-
-		sci := payload.SimpleContainerImage{}
-		if err := json.Unmarshal(pld, &sci); err != nil {
-			return nil, fmt.Errorf("error decoding the payload: %w", err)
-		}
-
-		sigPayloads = append(sigPayloads, sci)
-	}
-	return sigPayloads, nil
-}
-
 func verifyAttestaions(image string) error {
 	ref, err := name.ParseReference(image)
 	if err != nil {
@@ -414,7 +414,7 @@ func fetch_attestations(image string) error {
 
 }
 
-func cosign2(image string) {
+func images_manifest_and_signature_fetch(image string) {
 	// regstry := os.Getenv("REGISTRY")
 	// repo := os.Getenv("REPOSITORY")
 	// identity := os.Getenv("DIGEST")
@@ -486,7 +486,7 @@ func cosign2(image string) {
 
 func main() {
 	image := "localhost:5001/demo-reffer:app3"
-	cosign2(image)
+	images_manifest_and_signature_fetch(image)
 	keyed_signatureVerification(image)
 	keyless_sigantureVerification(image)
 	fetch_attestations(image)
