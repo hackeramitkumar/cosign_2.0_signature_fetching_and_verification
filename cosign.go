@@ -255,7 +255,7 @@ func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, e
 	return sigPayloads, nil
 }
 
-func verifyAttestaions(ctx context.Context, image string) ([]oci.Signature, error) {
+func verifyAttestaions(ctx context.Context, image string) {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		fmt.Println(err)
@@ -300,7 +300,7 @@ func verifyAttestaions(ctx context.Context, image string) ([]oci.Signature, erro
 
 	payloads, err := extractPayload(sigs)
 	if err != nil {
-		return nil, err
+		fmt.Println(err)
 	}
 
 	for _, p := range payloads {
@@ -309,9 +309,11 @@ func verifyAttestaions(ctx context.Context, image string) ([]oci.Signature, erro
 
 	fmt.Println("-----------------   Verified signature are    -------------------------------")
 	for _, sig := range sigs {
+		// byteStream2, err := json.Marshal(sig.Signature())
+
 		sig.Signature()
 	}
-	return sigs, err
+	// return sigs, err
 }
 
 func fetch_attestations(ctx context.Context, repo string) {
@@ -483,14 +485,8 @@ func cosign2(ctx context.Context, image string) {
 }
 
 func main() {
-
-	ctx := context.Background()
 	image := "localhost:5001/demo-reffer:app3"
-
-	// cosign2(ctx, image)
-
 	fmt.Println("--------------------------------------------Fetch attestation-------------------------------------")
-
 	fetch_attestations(ctx, image)
 	verifyAttestaions(ctx, image)
 }
