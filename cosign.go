@@ -196,21 +196,16 @@ func keyless_sigantureVerification(image string) {
 	fmt.Println("-----------------------------Signature verification in Progress -------------------------------")
 	if err != nil {
 		fmt.Println("No signature matched : ", err)
-		return nil
+		panic(err)
 	}
 
 	if !isVerified {
 		fmt.Println("---------------------------------Verification failed ----------------------------------------")
-		return nil, nil
+		panic(err)
 	}
 
 	fmt.Println("")
 	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
-
-	keyless_verified_signatures, err := keyless_sigantureVerification(ctx, ref)
-	if err != nil {
-		fmt.Println("no signature matched...")
-	}
 
 	fmt.Println("")
 	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
