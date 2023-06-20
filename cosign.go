@@ -278,18 +278,57 @@ func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, e
 	return sigPayloads, nil
 }
 
-func verifyAttestaions(ctx context.Context, image string, predicateType string) ([]oci.Signature, error) {
+func verifyAttestaions(ctx context.Context, image string) ([]oci.Signature, error) {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		fmt.Println(err)
 	}
-	identity := cosign.Identity{
-		Issuer:  "https://accounts.google.com",
-		Subject: "amit9116260192@gmail.com",
+	/*	identity := cosign.Identity{
+			Issuer:  "https://accounts.google.com",
+			Subject: "amit9116260192@gmail.com",
+		}
+
+		identities := []cosign.Identity{
+			identity,
+		}
+
+		trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
+		if err != nil {
+			fmt.Println("Error occured during the getting rekor pubs keys...")
+		}
+		fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
+
+		ctLogPubKeys, err := cosign.GetCTLogPubs(ctx)
+		if err != nil {
+			fmt.Println("Error with CTLogPubKeys")
+		}
+
+		roots, err := fulcio.GetRoots()
+		if err != nil {
+			fmt.Println("Did not get roots")
+		}
+
+		cosignOptions := cosign.CheckOpts{
+			Identities:   identities,
+			RekorPubKeys: trustedTransparencyLogPubKeys,
+			CTLogPubKeys: ctLogPubKeys,
+			RootCerts:    roots,
+		}
+	*/
+
+	filePath := "cosign.pub"
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		panic(err)
 	}
 
-	identities := []cosign.Identity{
-		identity,
+	// Convert the data to a byte slice ([]byte)
+	byteData := []byte(data)
+	verifier, err := decodePEM(byteData, crypto.SHA256)
+	if err != nil {
+		fmt.Println("Error occured during the fetching of verifier;")
+		panic(err)
 	}
 
 	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
@@ -297,22 +336,11 @@ func verifyAttestaions(ctx context.Context, image string, predicateType string) 
 		fmt.Println("Error occured during the getting rekor pubs keys...")
 	}
 	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
-
-	ctLogPubKeys, err := cosign.GetCTLogPubs(ctx)
-	if err != nil {
-		fmt.Println("Error with CTLogPubKeys")
-	}
-
-	roots, err := fulcio.GetRoots()
-	if err != nil {
-		fmt.Println("Did not get roots")
-	}
-
+	// rekor_client := cosign.Get(ctx)
 	cosignOptions := cosign.CheckOpts{
-		Identities:   identities,
+		SigVerifier: verifier,
+		// RekorClient: rekor_client,
 		RekorPubKeys: trustedTransparencyLogPubKeys,
-		CTLogPubKeys: ctLogPubKeys,
-		RootCerts:    roots,
 	}
 
 	sigs, bundelVerified, err := cosign.VerifyImageAttestations(ctx, ref, &cosignOptions)
@@ -332,6 +360,11 @@ func verifyAttestaions(ctx context.Context, image string, predicateType string) 
 
 	for _, p := range payloads {
 		fmt.Println(p.Critical.Type)
+	}
+
+	fmt.Println("-----------------   Verified signature are    -------------------------------")
+	for _, sig := range sigs {
+		fmt.Println(sig.Base64Signature())
 	}
 	return sigs, err
 
@@ -361,6 +394,7 @@ func fetch_attestations(ctx context.Context, repo string) {
 	fmt.Println("---------------------------Fetching the referrers-----------------------------------")
 	fmt.Println()
 	// fmt.Println("Data :", str2)
+
 	for _, descriptor := range refDescs.Manifests {
 		fmt.Println("Digest:", descriptor.Digest.String())
 		fmt.Println("Artifact Type:", descriptor.ArtifactType)
@@ -401,6 +435,7 @@ func fetch_attestations(ctx context.Context, repo string) {
 			}
 
 			fmt.Println(buf.String())
+
 		}
 	}
 
@@ -508,10 +543,10 @@ func main() {
 	ctx := context.Background()
 	image := "localhost:5001/demo-reffer:app3"
 
-	cosign2(ctx, image)
+	// cosign2(ctx, image)
 
 	fmt.Println("--------------------------------------------Fetch attestation-------------------------------------")
 
 	fetch_attestations(ctx, image)
-	verifyAttestaions(ctx, image, "amit kumar")
+	verifyAttestaions(ctx, image)
 }
