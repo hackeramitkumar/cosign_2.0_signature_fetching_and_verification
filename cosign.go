@@ -157,6 +157,9 @@ func keyless_sigantureVerification(image string) ([]oci.Signature, error) {
 	}
 	ctx := context.Background()
 
+	fmt.Println("-------------------------------------Keyless Signature verification --------------------------------------")
+	fmt.Println("")
+
 	identity := cosign.Identity{
 		Issuer:  "https://accounts.google.com",
 		Subject: "amit9116260192@gmail.com",
@@ -203,9 +206,6 @@ func keyless_sigantureVerification(image string) ([]oci.Signature, error) {
 
 	fmt.Println("")
 	fmt.Println("---------------------------- Signature verification completed  ----------------------------------")
-
-	fmt.Println("-------------------------------------Keyless Signature verification --------------------------------------")
-	fmt.Println("")
 
 	keyless_verified_signatures, err := keyless_sigantureVerification(ctx, ref)
 	if err != nil {
