@@ -35,7 +35,12 @@ func decodePEM(raw []byte, signatureAlgorithm crypto.Hash) (signature.Verifier, 
 	return signature.LoadVerifier(pubKey, signatureAlgorithm)
 }
 
-func fetch_image_manifests(ref name.Reference) error {
+func fetch_image_manifests(image string) error {
+
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	desc, err := remote.Get(ref)
 	if err != nil {
@@ -409,7 +414,7 @@ func fetch_attestations(image string) error {
 
 }
 
-func cosign2(ctx context.Context, image string) {
+func cosign2(image string) {
 	// regstry := os.Getenv("REGISTRY")
 	// repo := os.Getenv("REPOSITORY")
 	// identity := os.Getenv("DIGEST")
@@ -421,15 +426,15 @@ func cosign2(ctx context.Context, image string) {
 	if err != nil {
 		panic(err)
 	}
+	ctx := context.Background()
 
 	fmt.Println("--------------------------------  Image refrence information : ------------------------------")
 	fmt.Println("Registry : ", ref.Context().RegistryStr())
 	fmt.Println("Repository : ", ref.Context().RepositoryStr())
 	fmt.Println("Identifier : ", ref.Identifier())
-
 	fmt.Println("")
 	fmt.Println("------------------------------------------Artifacts--------------------------------------------")
-	// fetchArtifacts(ref)
+	fetch_image_manifests(image)
 	fmt.Println()
 
 	fmt.Print("-----------------  Fetching the signedPayload for : ", image)
