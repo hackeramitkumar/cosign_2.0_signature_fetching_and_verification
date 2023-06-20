@@ -487,6 +487,9 @@ func cosign2(image string) {
 func main() {
 	image := "localhost:5001/demo-reffer:app3"
 	fmt.Println("--------------------------------------------Fetch attestation-------------------------------------")
-	fetch_attestations(ctx, image)
-	verifyAttestaions(ctx, image)
+	cosign2(image)
+	keyed_signatureVerification(image)
+	keyless_sigantureVerification(image)
+	fetch_attestations(image)
+	verifyAttestaions(image)
 }
