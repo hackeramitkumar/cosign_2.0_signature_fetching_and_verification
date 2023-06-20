@@ -182,34 +182,11 @@ func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]o
 	}
 	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
 
-	// filePath := "demo.txt"
-	// data, err := ioutil.ReadFile(filePath)
-	// if err != nil {
-	// 	fmt.Println("Error reading file:", err)
-	// 	panic(err)
-	// }
-
-	// // Convert the data to a byte slice ([]byte)
-	// byteData := []byte(data)
-	// cert, err := loadCert(byteData)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// fmt.Println(string(byteData))
-
-	// verifier2, err := signature.LoadVerifier(cert.PublicKey, crypto.SHA256)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to load signature from certificate: %w", err)
-	// }
-
 	roots, err := fulcio.GetRoots()
 	if err != nil {
 		fmt.Println("Did not get roots")
 	}
 
-	// rekorUrl := "https://rekor.sigstore.dev"
-
-	// rekor_client, err := rekor.NewClient(rekorUrl)
 	ctLogPubKeys, err := cosign.GetCTLogPubs(ctx)
 	if err != nil {
 		fmt.Println("Error with CTLogPubKeys")
@@ -283,38 +260,6 @@ func verifyAttestaions(ctx context.Context, image string) ([]oci.Signature, erro
 	if err != nil {
 		fmt.Println(err)
 	}
-	/*	identity := cosign.Identity{
-			Issuer:  "https://accounts.google.com",
-			Subject: "amit9116260192@gmail.com",
-		}
-
-		identities := []cosign.Identity{
-			identity,
-		}
-
-		trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
-		if err != nil {
-			fmt.Println("Error occured during the getting rekor pubs keys...")
-		}
-		fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
-
-		ctLogPubKeys, err := cosign.GetCTLogPubs(ctx)
-		if err != nil {
-			fmt.Println("Error with CTLogPubKeys")
-		}
-
-		roots, err := fulcio.GetRoots()
-		if err != nil {
-			fmt.Println("Did not get roots")
-		}
-
-		cosignOptions := cosign.CheckOpts{
-			Identities:   identities,
-			RekorPubKeys: trustedTransparencyLogPubKeys,
-			CTLogPubKeys: ctLogPubKeys,
-			RootCerts:    roots,
-		}
-	*/
 
 	filePath := "cosign.pub"
 	data, err := ioutil.ReadFile(filePath)
@@ -364,10 +309,9 @@ func verifyAttestaions(ctx context.Context, image string) ([]oci.Signature, erro
 
 	fmt.Println("-----------------   Verified signature are    -------------------------------")
 	for _, sig := range sigs {
-		fmt.Println(sig.Base64Signature())
+		sig.Signature()
 	}
 	return sigs, err
-
 }
 
 func fetch_attestations(ctx context.Context, repo string) {
