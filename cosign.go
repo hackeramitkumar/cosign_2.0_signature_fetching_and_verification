@@ -150,7 +150,12 @@ func keyed_signatureVerification(image string) error {
 	return nil
 }
 
-func keyless_sigantureVerification(ctx context.Context, ref name.Reference) ([]oci.Signature, error) {
+func keyless_sigantureVerification(image string) ([]oci.Signature, error) {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx := context.Background()
 
 	identity := cosign.Identity{
 		Issuer:  "https://accounts.google.com",
@@ -440,14 +445,6 @@ func cosign2(ctx context.Context, image string) {
 	}
 
 	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("-------------------------------------Keyed Signature verification --------------------------------------")
-	fmt.Println("")
-
-	keyed_verified_signatures, err := keyed_signatureVerification(ctx, ref)
-	if err != nil {
-		fmt.Println("no signature matched:")
-	}
 	fmt.Println("")
 	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
 	for _, sig := range keyed_verified_signatures {
