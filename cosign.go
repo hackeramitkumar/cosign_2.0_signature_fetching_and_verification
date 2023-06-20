@@ -340,6 +340,8 @@ func verifyAttestaions(image string) error {
 }
 
 func fetch_attestations(image string) error {
+	fmt.Println("---------------------------Fetching the referrers-----------------------------------")
+	fmt.Println()
 
 	ref, err := name.ParseReference(image)
 	if err != nil {
@@ -356,8 +358,7 @@ func fetch_attestations(image string) error {
 		fmt.Println("error in refferels api : ", ref.Context().Digest(desc.Digest.String()))
 		panic(err)
 	}
-	fmt.Println("---------------------------Fetching the referrers-----------------------------------")
-	fmt.Println()
+
 	// fmt.Println("Data :", str2)
 
 	for _, descriptor := range refDescs.Manifests {
