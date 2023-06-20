@@ -209,7 +209,7 @@ func keyless_sigantureVerification(image string) {
 
 	fmt.Println("")
 	fmt.Println("--------------------------------List of the verified signatures ----------------------------------")
-	for _, sig := range keyless_verified_signatures {
+	for _, sig := range verified_signatures {
 		fmt.Println(sig.Base64Signature())
 	}
 }
