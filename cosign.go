@@ -259,11 +259,14 @@ func extractPayload(verified []oci.Signature) ([]payload.SimpleContainerImage, e
 	return sigPayloads, nil
 }
 
-func verifyAttestaions(ctx context.Context, image string) {
+func verifyAttestaions(image string) error {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	ctx := context.Background()
+	fmt.Println("---------------------------- Image attestations verification ----------------------------------")
 
 	filePath := "cosign.pub"
 	data, err := ioutil.ReadFile(filePath)
@@ -283,6 +286,7 @@ func verifyAttestaions(ctx context.Context, image string) {
 	trustedTransparencyLogPubKeys, err := cosign.GetRekorPubs(ctx)
 	if err != nil {
 		fmt.Println("Error occured during the getting rekor pubs keys...")
+		panic(err)
 	}
 	fmt.Println("Rekor keys are : ", trustedTransparencyLogPubKeys.Keys)
 	// rekor_client := cosign.Get(ctx)
@@ -293,45 +297,57 @@ func verifyAttestaions(ctx context.Context, image string) {
 	}
 
 	sigs, bundelVerified, err := cosign.VerifyImageAttestations(ctx, ref, &cosignOptions)
+	fmt.Println("-----------------------------Attestations verification in Progress -------------------------------")
 
 	if err != nil {
 		fmt.Println("Error in fething verified siganture", err)
+		panic(err)
 	}
 
 	if !bundelVerified {
 		fmt.Println("Bundle is not verified!!", err)
+		panic(err)
 	}
 
-	payloads, err := extractPayload(sigs)
-	if err != nil {
-		fmt.Println(err)
-	}
+	/*
+		Not useful now
+		payloads, err := extractPayload(sigs)
+		if err != nil {
+			fmt.Println(err)
+		}
 
-	for _, p := range payloads {
-		fmt.Println(p.Critical.Type)
-	}
+		for _, p := range payloads {
+			fmt.Println(p.Critical.Type)
+		}
+	*/
 
-	fmt.Println("-----------------   Verified signature are    -------------------------------")
+	fmt.Println("------------------- Verified attestations signatures are ------------------------------")
 	for _, sig := range sigs {
-		// byteStream2, err := json.Marshal(sig.Signature())
+		io, err := sig.Uncompressed()
+		if err != nil {
+			panic(err)
+		}
+		buf := new(bytes.Buffer)
 
-		sig.Signature()
+		_, err = buf.ReadFrom(io)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("\n---------------------------------------------------------------------------------\n")
+		fmt.Println(buf.String())
 	}
-	// return sigs, err
+	return nil
 }
 
-func fetch_attestations(ctx context.Context, repo string) {
-	// image := "ghcr.io/hackeramitkumar/client:unverified"
+func fetch_attestations(image string) error {
 
-	ref, err := name.ParseReference(repo)
+	ref, err := name.ParseReference(image)
 	if err != nil {
 		panic(err)
 	}
 
-	// img, err := remote.Image(ref)
-	desc, err := crane.Head(repo)
-	//
-	//
+	desc, err := crane.Head(image)
+
 	if err != nil {
 		fmt.Println("error in Crane.Head call")
 	}
