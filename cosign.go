@@ -347,7 +347,6 @@ func fetch_attestations(image string) error {
 	}
 
 	desc, err := crane.Head(image)
-
 	if err != nil {
 		fmt.Println("error in Crane.Head call")
 	}
