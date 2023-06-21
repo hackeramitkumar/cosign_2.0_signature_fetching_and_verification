@@ -15,11 +15,11 @@ func Test_fetch_signatures_and_manifests(t *testing.T) {
 	images_manifest_and_signature_fetch(image)
 }
 
-func Test_keyed(t *testing.T) {
+func Test_keyed_signature_verification(t *testing.T) {
 	keyed_signatureVerification(image)
 }
 
-func Test_keyless(t *testing.T) {
+func Test_keyless_signature_verification(t *testing.T) {
 	keyless_sigantureVerification(image)
 }
 
