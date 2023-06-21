@@ -24,7 +24,7 @@ func Test_keyless(t *testing.T) {
 }
 
 func Test_fetch_attached_artifacts_using_referrer_API(t *testing.T) {
-	fetch_attestations(image)
+	fetch_attestations(image, artifactType)
 }
 
 func Test_verify_attestation(t *testing.T) {
