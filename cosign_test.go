@@ -3,7 +3,8 @@ package main
 import "testing"
 
 var (
-	image = "localhost:5001/demo-reffer:app3"
+	image        = "localhost:5001/demo-reffer:app3"
+	artifactType = "application/spdx+json"
 )
 
 func Test_Cosign2(t *testing.T) {

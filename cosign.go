@@ -349,7 +349,7 @@ func verifyAttestaions(image string) error {
 	return nil
 }
 
-func fetch_attestations(image string) error {
+func fetch_attestations(image string, artifactType string) error {
 	fmt.Println("---------------------------Fetching the referrers-----------------------------------")
 	fmt.Println()
 
@@ -376,7 +376,7 @@ func fetch_attestations(image string) error {
 		fmt.Println("Digest:", descriptor.Digest.String())
 		fmt.Println("Artifact Type:", descriptor.ArtifactType)
 
-		if descriptor.ArtifactType == "application/spdx+json" {
+		if descriptor.ArtifactType == artifactType {
 			ref := ref.Context().RegistryStr() + "/" + ref.Context().RepositoryStr() + "@" + descriptor.Digest.String()
 			reference, err := name.ParseReference(ref)
 			if err != nil {
@@ -491,9 +491,10 @@ func images_manifest_and_signature_fetch(image string) {
 
 func main() {
 	image := "localhost:5001/demo-reffer:app3"
+	artifactType := "application/spdx+json"
 	images_manifest_and_signature_fetch(image)
 	keyed_signatureVerification(image)
 	keyless_sigantureVerification(image)
-	fetch_attestations(image) // referrers API
+	fetch_attestations(image, artifactType) // referrers API
 	verifyAttestaions(image)
 }
